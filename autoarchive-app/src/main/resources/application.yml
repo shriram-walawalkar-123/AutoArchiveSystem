@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: autoarchive
+
+autoarchive:
+  storage:
+    type: local
+    scan-roots:
+      - C:/Users/swala/Desktop/AutoArchiveSystem/data/active
+    archive-root: C:/Users/swala/Desktop/AutoArchiveSystem/data/archive
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/autoarchive
+    username: autoarchive
+    password: autoarchive
+
+  redis:
+    host: localhost
+    port: 6379
