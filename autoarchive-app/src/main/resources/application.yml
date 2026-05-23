@@ -9,6 +9,9 @@ autoarchive:
       - C:/Users/swala/Desktop/AutoArchiveSystem/data/active
     archive-root: C:/Users/swala/Desktop/AutoArchiveSystem/data/archive
 
+  retention:
+    archive-after-days: 0
+
   datasource:
     url: jdbc:postgresql://localhost:5432/autoarchive
     username: autoarchive
