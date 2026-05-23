@@ -16,11 +16,17 @@ An automated storage lifecycle management platform that scans metadata, applies 
 
 ---
 
-## Open Questions
+## Decisions
 
 > [!NOTE]
-> **Storage Providers Support**
-> Do we want to support cloud providers like AWS S3 or Azure Blob Storage in the first release, or focus entirely on local filesystems? The core engine will be built around a generic `StorageService` interface to support easy expansion.
+> **Storage (v1): Local filesystem only**
+> The first release targets **local filesystem** paths only (scan, archive move, delete via `java.nio.file`). Cloud providers (AWS S3, Azure Blob, etc.) are **out of scope for v1** but the core engine will use a `StorageService` interface so a cloud implementation can be added later without rewriting policy or audit logic.
+
+| v1 (now) | Later (optional) |
+| :--- | :--- |
+| `LocalFileStorageService` — walk directories, read metadata, move/delete on disk | `S3StorageService`, `AzureBlobStorageService`, etc. |
+| `file_path` = absolute local path (e.g. `C:\data\logs\app.log`) | `file_path` = object URI when cloud is added |
+| Docker volumes or host bind mounts for dev/test targets | Cloud credentials and SDK dependencies |
 
 ---
 
