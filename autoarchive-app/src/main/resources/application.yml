@@ -1,6 +1,12 @@
 spring:
   application:
     name: autoarchive
+  datasource:
+    url: jdbc:postgresql://localhost:5433/autoarchive?options=-c%20TimeZone%3DUTC
+    username: autoarchive
+    password: autoarchive
+  flyway:
+    enabled: true
 
 autoarchive:
   storage:
@@ -11,11 +17,10 @@ autoarchive:
 
   retention:
     archive-after-days: 0
+    dry-run: false
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/autoarchive
-    username: autoarchive
-    password: autoarchive
+  audit:
+    file-path: C:/Users/swala/Desktop/AutoArchiveSystem/data/audit/audit.log
 
   redis:
     host: localhost
