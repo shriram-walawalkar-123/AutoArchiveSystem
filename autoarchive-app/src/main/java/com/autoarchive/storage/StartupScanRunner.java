@@ -6,7 +6,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-import com.autoarchive.audit.AuditService;
+import com.autoarchive.config.ArchiveExecutionProperties;
 import com.autoarchive.config.RetentionProperties;
 import com.autoarchive.config.StorageProperties;
 
@@ -17,33 +17,34 @@ public class StartupScanRunner implements ApplicationRunner {
 
     private final StorageProperties storageProperties;
     private final RetentionProperties retentionProperties;
+    private final ArchiveExecutionProperties archiveExecutionProperties;
     private final LocalFileStorageService localFileStorageService;
     private final RetentionPolicyEvaluator retentionPolicyEvaluator;
-    private final FileArchiveService fileArchiveService;
-    private final AuditService auditService;
+    private final ArchivePipelineService archivePipelineService;
 
     public StartupScanRunner(
             StorageProperties storageProperties,
             RetentionProperties retentionProperties,
+            ArchiveExecutionProperties archiveExecutionProperties,
             LocalFileStorageService localFileStorageService,
             RetentionPolicyEvaluator retentionPolicyEvaluator,
-            FileArchiveService fileArchiveService,
-            AuditService auditService) {
+            ArchivePipelineService archivePipelineService) {
         this.storageProperties = storageProperties;
         this.retentionProperties = retentionProperties;
+        this.archiveExecutionProperties = archiveExecutionProperties;
         this.localFileStorageService = localFileStorageService;
         this.retentionPolicyEvaluator = retentionPolicyEvaluator;
-        this.fileArchiveService = fileArchiveService;
-        this.auditService = auditService;
+        this.archivePipelineService = archivePipelineService;
     }
 
     @Override
     public void run(ApplicationArguments args) {
         log.info("Archive root: {}", storageProperties.archiveRoot());
         log.info(
-                "Retention rule: archive files older than {} day(s) | dry-run={}",
+                "Retention rule: archive files older than {} day(s) | dry-run={} | execution-mode={}",
                 retentionProperties.archiveAfterDays(),
-                retentionProperties.dryRun());
+                retentionProperties.dryRun(),
+                archiveExecutionProperties.mode());
 
         var files = localFileStorageService.scanFilesInScanRoots();
         var candidates = retentionPolicyEvaluator.findArchiveCandidates(files);
@@ -56,15 +57,15 @@ public class StartupScanRunner implements ApplicationRunner {
             return;
         }
 
-        for (FileMetadata file : candidates) {
-            try {
-                var target = fileArchiveService.archiveFile(file);
-                log.info("  -> moved {} to {}", file.path().toAbsolutePath(), target.toAbsolutePath());
-                auditService.logArchiveSuccess(file, target);
-            } catch (Exception ex) {
-                log.error("  -> failed to archive {}: {}", file.path().toAbsolutePath(), ex.getMessage());
-                auditService.logArchiveFailure(file, ex.getMessage());
-            }
-        }
+        ArchiveExecutionResult result = archivePipelineService.execute(
+                candidates, archiveExecutionProperties.mode());
+
+        log.info(
+                "Archive finished | mode={} | files={} | success={} | failed={} | time={} ms",
+                result.mode(),
+                result.fileCount(),
+                result.successCount(),
+                result.failureCount(),
+                result.durationMillis());
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import com.autoarchive.audit.AuditProperties;
+import com.autoarchive.config.ArchiveExecutionProperties;
 import com.autoarchive.config.RetentionProperties;
 import com.autoarchive.config.StorageProperties;
 
@@ -14,7 +15,8 @@ import com.autoarchive.config.StorageProperties;
 @EnableConfigurationProperties({
     StorageProperties.class,
     RetentionProperties.class,
-    AuditProperties.class
+    AuditProperties.class,
+    ArchiveExecutionProperties.class
 })
 public class AutoArchiveApplication {
 

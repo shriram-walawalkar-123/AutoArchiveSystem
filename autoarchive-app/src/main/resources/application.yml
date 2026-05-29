@@ -19,6 +19,9 @@ autoarchive:
     archive-after-days: 0
     dry-run: false
 
+  archive:
+    mode: sequential
+
   audit:
     file-path: C:/Users/swala/Desktop/AutoArchiveSystem/data/audit/audit.log
 
