@@ -21,9 +21,14 @@ autoarchive:
 
   archive:
     mode: sequential
+    parallel-concurrency: 8
 
   audit:
     file-path: C:/Users/swala/Desktop/AutoArchiveSystem/data/audit/audit.log
+    db-batch-size: 100
+    file-batch-size: 100
+    file-enabled: true
+    db-enabled: true
 
   redis:
     host: localhost

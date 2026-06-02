@@ -38,7 +38,7 @@ public class StartupScanRunner implements ApplicationRunner {
     }
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(ApplicationArguments args) throws InterruptedException {
         log.info("Archive root: {}", storageProperties.archiveRoot());
         log.info(
                 "Retention rule: archive files older than {} day(s) | dry-run={} | execution-mode={}",
@@ -46,11 +46,14 @@ public class StartupScanRunner implements ApplicationRunner {
                 retentionProperties.dryRun(),
                 archiveExecutionProperties.mode());
 
+        long scanStart = System.nanoTime();
         var files = localFileStorageService.scanFilesInScanRoots();
+        long scanMs = (System.nanoTime() - scanStart) / 1_000_000;
+
         var candidates = retentionPolicyEvaluator.findArchiveCandidates(files);
 
         if (retentionProperties.dryRun()) {
-            log.info("Dry run — would archive {} file(s):", candidates.size());
+            log.info("Dry run — would archive {} file(s) | scan time={} ms", candidates.size(), scanMs);
             for (FileMetadata file : candidates) {
                 log.info("  -> {}", file.path().toAbsolutePath());
             }
@@ -60,8 +63,9 @@ public class StartupScanRunner implements ApplicationRunner {
         ArchiveExecutionResult result = archivePipelineService.execute(
                 candidates, archiveExecutionProperties.mode());
 
+        log.info("Scan finished | files={} | time={} ms", files.size(), scanMs);
         log.info(
-                "Archive finished | mode={} | files={} | success={} | failed={} | time={} ms",
+                "Archive finished | mode={} | files={} | success={} | failed={} | time={} ms (includes batched audit flush)",
                 result.mode(),
                 result.fileCount(),
                 result.successCount(),

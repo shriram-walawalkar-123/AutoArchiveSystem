@@ -18,15 +18,24 @@ public class FileArchiveService {
         this.storageProperties = storageProperties;
     }
 
-  /**
-   * Moves one file into the archive root (same filename).
-   * Example: data/active/report.txt → data/archive/report.txt
-   */
+    /** Moves file to flat archive root: data/archive/{fileName} */
     public Path archiveFile(FileMetadata file) throws IOException {
         Path archiveRoot = Path.of(storageProperties.archiveRoot());
         Files.createDirectories(archiveRoot);
-
         Path target = archiveRoot.resolve(file.fileName());
+        return Files.move(file.path(), target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Moves file into a shard subfolder to avoid Windows directory lock contention
+     * when many threads write to the same folder: data/archive/shard-{n}/{fileName}
+     */
+    public Path archiveFileSharded(FileMetadata file, int fileIndex, int shardCount) throws IOException {
+        Path archiveRoot = Path.of(storageProperties.archiveRoot());
+        int shard = Math.floorMod(fileIndex, shardCount);
+        Path shardDir = archiveRoot.resolve("shard-" + shard);
+        Files.createDirectories(shardDir);
+        Path target = shardDir.resolve(file.fileName());
         return Files.move(file.path(), target, StandardCopyOption.REPLACE_EXISTING);
     }
 }
