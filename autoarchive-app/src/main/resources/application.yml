@@ -22,6 +22,7 @@ autoarchive:
   archive:
     mode: sequential
     parallel-concurrency: 8
+    batch-size: 3000
 
   audit:
     file-path: C:/Users/swala/Desktop/AutoArchiveSystem/data/audit/audit.log

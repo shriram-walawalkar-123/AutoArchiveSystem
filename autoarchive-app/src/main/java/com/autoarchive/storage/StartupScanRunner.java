@@ -60,16 +60,39 @@ public class StartupScanRunner implements ApplicationRunner {
             return;
         }
 
-        ArchiveExecutionResult result = archivePipelineService.execute(
-                candidates, archiveExecutionProperties.mode());
+        int batchSize = archiveExecutionProperties.batchSize();
+        int totalBatches = (candidates.size() + batchSize - 1) / batchSize;
+        int totalSuccess = 0;
+        int totalFailed = 0;
+        long totalDurationMs = 0;
+
+        log.info("Processing {} candidate file(s) in {} batch(es) of up to {} files each",
+                candidates.size(), totalBatches, batchSize);
+
+        for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            int from = batchIndex * batchSize;
+            int to = Math.min(from + batchSize, candidates.size());
+            var batch = candidates.subList(from, to);
+
+            log.info("Starting batch {}/{} ({} files)", batchIndex + 1, totalBatches, batch.size());
+
+            ArchiveExecutionResult result = archivePipelineService.execute(batch, archiveExecutionProperties.mode());
+
+            totalSuccess += result.successCount();
+            totalFailed += result.failureCount();
+            totalDurationMs += result.durationMillis();
+
+            log.info("Batch {}/{} complete | success={} | failed={} | batch-time={} ms",
+                    batchIndex + 1, totalBatches, result.successCount(), result.failureCount(), result.durationMillis());
+        }
 
         log.info("Scan finished | files={} | time={} ms", files.size(), scanMs);
         log.info(
-                "Archive finished | mode={} | files={} | success={} | failed={} | time={} ms (includes batched audit flush)",
-                result.mode(),
-                result.fileCount(),
-                result.successCount(),
-                result.failureCount(),
-                result.durationMillis());
+                "Archive finished | mode={} | total-files={} | total-success={} | total-failed={} | total-time={} ms",
+                archiveExecutionProperties.mode(),
+                candidates.size(),
+                totalSuccess,
+                totalFailed,
+                totalDurationMs);
     }
 }

@@ -8,7 +8,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import org.springframework.stereotype.Service;
 
@@ -28,42 +27,30 @@ public class LocalFileStorageService {
     }
 
     public List<FileMetadata> scanFilesInScanRoots() {
-        List<Path> filePaths = collectFilePaths();
-        return readMetadataParallel(filePaths);
-    }
-
-    private List<Path> collectFilePaths() {
-        List<Path> filePaths = new ArrayList<>();
-        for (String root : storageProperties.scanRoots()) {
-            Path directory = Path.of(root);
-            if (!Files.exists(directory)) {
-                continue;
-            }
-            try (var paths = Files.walk(directory)) {
-                paths.filter(Files::isRegularFile).forEach(filePaths::add);
-            } catch (IOException ex) {
-                throw new UncheckedIOException("Failed to scan directory: " + directory, ex);
-            }
-        }
-        return filePaths;
-    }
-
-    private List<FileMetadata> readMetadataParallel(List<Path> filePaths) {
-        List<FileMetadata> metadataList = new ArrayList<>(filePaths.size());
         try (ExecutorService executor = virtualThreadArchiveExecutor.newExecutor()) {
-            List<Future<FileMetadata>> futures = new ArrayList<>(filePaths.size());
-            for (Path path : filePaths) {
-                futures.add(executor.submit(() -> readMetadata(path)));
+            List<java.util.concurrent.Future<FileMetadata>> futures = new ArrayList<>();
+            for (String root : storageProperties.scanRoots()) {
+                Path directory = Path.of(root);
+                if (!Files.exists(directory)) {
+                    continue;
+                }
+                try (var paths = Files.walk(directory)) {
+                    paths.filter(Files::isRegularFile)
+                            .forEach(path -> futures.add(executor.submit(() -> readMetadata(path))));
+                } catch (IOException ex) {
+                    throw new UncheckedIOException("Failed to scan directory: " + directory, ex);
+                }
             }
-            for (Future<FileMetadata> future : futures) {
+            List<FileMetadata> results = new ArrayList<>(futures.size());
+            for (var future : futures) {
                 try {
-                    metadataList.add(future.get());
+                    results.add(future.get());
                 } catch (Exception ex) {
                     throw new IllegalStateException("Failed to read file metadata", ex);
                 }
             }
+            return results;
         }
-        return metadataList;
     }
 
     private FileMetadata readMetadata(Path path) {
